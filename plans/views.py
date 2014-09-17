@@ -152,7 +152,7 @@ class ChangePlanView(LoginRequired, View):
     """
 
     def get(self, request, *args, **kwargs):
-        return HttpResponseRedirect(reverse('upgrade_plan'))
+        return HttpResponseRedirect(reverse('plans:upgrade_plan'))
 
     def post(self, request, *args, **kwargs):
         plan = get_object_or_404(Plan, Q(pk=kwargs['pk']) & Q(available=True, visible=True) & (
@@ -169,7 +169,7 @@ class ChangePlanView(LoginRequired, View):
                 messages.success(request, _("Your plan has been successfully changed"))
             else:
                 return HttpResponseForbidden()
-        return HttpResponseRedirect(reverse('upgrade_plan'))
+        return HttpResponseRedirect(reverse('plans:upgrade_plan'))
 
 
 class CreateOrderView(LoginRequired, CreateView):
@@ -380,8 +380,8 @@ class BillingInfoRedirectView(LoginRequired, RedirectView):
         try:
             BillingInfo.objects.get(user=self.request.user)
         except BillingInfo.DoesNotExist:
-            return reverse('billing_info_create')
-        return reverse('billing_info_update')
+            return reverse('plans:billing_info_create')
+        return reverse('plans:billing_info_update')
 
 
 class BillingInfoCreateView(LoginRequired, CreateView):
@@ -399,7 +399,7 @@ class BillingInfoCreateView(LoginRequired, CreateView):
 
     def get_success_url(self):
         messages.success(self.request, _('Billing info has been updated successfuly.'))
-        return reverse('billing_info_update')
+        return reverse('plans:billing_info_update')
 
 
 class BillingInfoUpdateView(LoginRequired, UpdateView):
@@ -418,7 +418,7 @@ class BillingInfoUpdateView(LoginRequired, UpdateView):
 
     def get_success_url(self):
         messages.success(self.request, _('Billing info has been updated successfuly.'))
-        return reverse('billing_info_update')
+        return reverse('plans:billing_info_update')
 
 
 class BillingInfoDeleteView(LoginRequired, DeleteView):
@@ -435,7 +435,7 @@ class BillingInfoDeleteView(LoginRequired, DeleteView):
 
     def get_success_url(self):
         messages.success(self.request, _('Billing info has been deleted.'))
-        return reverse('billing_info_create')
+        return reverse('plans:billing_info_create')
 
 
 class InvoiceDetailView(LoginRequired, DetailView):
@@ -479,9 +479,9 @@ class FakePaymentsView(LoginRequired, SingleObjectMixin, FormView):
     def form_valid(self, form):
         if int(form['status'].value()) == Order.STATUS.COMPLETED:
             self.object.complete_order()
-            return HttpResponseRedirect(reverse('order_payment_success', kwargs={'pk': self.object.pk}))
+            return HttpResponseRedirect(reverse('plans:order_payment_success', kwargs={'pk': self.object.pk}))
         else:
             self.object.status = form['status'].value()
             self.object.save()
-            return HttpResponseRedirect(reverse('order_payment_failure', kwargs={'pk': self.object.pk}))
+            return HttpResponseRedirect(reverse('plans:order_payment_failure', kwargs={'pk': self.object.pk}))
 

@@ -455,7 +455,7 @@ class Order(models.Model):
             return self.amount
 
     def get_absolute_url(self):
-        return reverse('order', kwargs={'pk': self.pk})
+        return reverse('plans:order', kwargs={'pk': self.pk})
 
     class Meta:
         ordering = ('-created', )
@@ -549,7 +549,7 @@ class Invoice(models.Model):
         return self.full_number
 
     def get_absolute_url(self):
-        return reverse('invoice_preview_html', kwargs={'pk': self.pk})
+        return reverse('plans:invoice_preview_html', kwargs={'pk': self.pk})
 
     def clean(self):
         if self.number is None:

@@ -3,6 +3,7 @@ from copy import deepcopy
 from django.contrib import admin
 from django.core import urlresolvers
 from ordered_model.admin import OrderedModelAdmin
+from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from .models import UserPlan, Plan, PlanQuota, Quota, PlanPricing, Pricing, Order, BillingInfo
@@ -11,7 +12,8 @@ from plans.models import Invoice
 
 class UserLinkMixin(object):
     def user_link(self, obj):
-        change_url = urlresolvers.reverse('admin:auth_user_change', args=(obj.user.id,))
+        user_model = settings.AUTH_USER_MODEL.lower().replace('.','_')
+        change_url = urlresolvers.reverse('admin:%s_change' % user_model, args=(obj.user.id,))
         return '<a href="%s">%s</a>' % (change_url, obj.user.username)
 
     user_link.short_description = 'User'

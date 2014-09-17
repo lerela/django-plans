@@ -5,7 +5,7 @@
 {% block body %}
     <h1>Billing data</h1>
 
-    <form method="post" action="{% url 'billing_info_delete' %}">
+    <form method="post" action="{% url 'plans:billing_info_delete' %}">
         {% csrf_token %}
         {% trans "Are you sure to delete billing info?" %}
         <p>
