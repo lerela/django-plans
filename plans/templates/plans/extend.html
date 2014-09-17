@@ -15,7 +15,7 @@
 {% endblock %}
 
 {% block body %}
-<form method="post" action="{% url 'order_plan' %}" id="pricing_form">
+<form method="post" action="{% url 'plans:order_plan' %}" id="pricing_form">
   {% csrf_token %}
   {{ form.as_p }}
 </form>
@@ -51,7 +51,7 @@
 </ul>
 {% else %}
 
-        {% url 'upgrade_plan' as upgrade_url %}
+        {% url 'plans:upgrade_plan' as upgrade_url %}
         {% blocktrans  %}
                 Unfortunately your current plan is not available any more. You need to <a href="{{ upgrade_url }}">upgrade your plan</a>.
         {% endblocktrans %}
