@@ -192,7 +192,7 @@ class UserPlan(models.Model):
         """
         if not self.is_active():
             if self.expire is None:
-                self.expire = now() + timedelta(
+                self.expire = now().date() + timedelta(
                     days=getattr(settings, 'PLAN_DEFAULT_GRACE_PERIOD', 30))
             self.activate()  # this will call self.save()
 
