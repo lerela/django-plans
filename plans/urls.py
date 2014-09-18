@@ -14,7 +14,7 @@ urlpatterns = patterns(
     url(r'^upgrade/$', UpgradePlanView.as_view(), name='upgrade_plan'),
     url(r'^order/extend/new/(?P<pk>\d+)/$', CreateOrderView.as_view(), name='create_order_plan'),
     url(r'^order/upgrade/new/(?P<pk>\d+)/$', CreateOrderPlanChangeView.as_view(), name='create_order_plan_change'),
-    url(r'^change/(?P<pk>\d+)/$', ChangePlanView.as_view(), name='change_plan'),
+    url(r'^change/(?P<pk>\d+)/$', ChangePlanView.as_view(redirect_page = getattr(settings, "PLANS_REDIRECT_AFTER_CHANGE", 'plans:upgrade_plan')), name='change_plan'),
     url(r'^order/$', OrderListView.as_view(), name='order_list'),
     url(r'^order/(?P<pk>\d+)/$', OrderView.as_view(), name='order'),
     url(r'^order/(?P<pk>\d+)/payment/success/$', OrderPaymentReturnView.as_view(status='success'),

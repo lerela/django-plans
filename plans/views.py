@@ -150,6 +150,7 @@ class ChangePlanView(LoginRequired, View):
     It always redirects to ``upgrade_plan`` url as this is a potential only one place from
     where change plan could be invoked.
     """
+    redirect_page = 'plans:upgrade_plan'
 
     def get(self, request, *args, **kwargs):
         return HttpResponseRedirect(reverse('plans:upgrade_plan'))
@@ -169,7 +170,9 @@ class ChangePlanView(LoginRequired, View):
                 messages.success(request, _("Your plan has been successfully changed"))
             else:
                 return HttpResponseForbidden()
-        return HttpResponseRedirect(reverse('plans:upgrade_plan'))
+        else:
+            messages.info(request, _("You have already subscribed this plan!"))
+        return HttpResponseRedirect(reverse(self.redirect_page))
 
 
 class CreateOrderView(LoginRequired, CreateView):
@@ -256,7 +259,7 @@ class CreateOrderView(LoginRequired, CreateView):
         return self.plan_pricing.price
 
     def get_context_data(self, **kwargs):
-        context = super(CreateOrderView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         self.get_all_context()
         context['billing_info'] = self.get_billing_info()
 
@@ -290,9 +293,16 @@ class CreateOrderPlanChangeView(CreateOrderView):
     form_class = CreateOrderForm
 
     def get_all_context(self):
-        self.plan = get_object_or_404(Plan, Q(pk=self.kwargs['pk']) & Q(available=True, visible=True) & (
-            Q(customized=self.request.user) | Q(customized__isnull=True)))
-        self.pricing = None
+        """
+        Retrieves Plan and Pricing for current order creation
+        """
+        self.plan_pricing = get_object_or_404(PlanPricing.objects.all().select_related('plan', 'pricing'),
+                                              Q(pk=self.kwargs['pk']) & Q(plan__available=True) & (
+                                                  Q(plan__customized=self.request.user) | Q(
+                                                      plan__customized__isnull=True)))
+
+        self.plan = self.plan_pricing.plan
+        self.pricing = self.plan_pricing.pricing
 
     def get_policy(self):
         policy_class = getattr(settings, 'PLAN_CHANGE_POLICY', 'plans.plan_change.StandardPlanChangePolicy')
@@ -304,7 +314,7 @@ class CreateOrderPlanChangeView(CreateOrderView):
         return policy.get_change_price(self.request.user.userplan.plan, self.plan, period)
 
     def get_context_data(self, **kwargs):
-        context = super(CreateOrderView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         self.get_all_context()
 
         price = self.get_price()
@@ -314,13 +324,30 @@ class CreateOrderPlanChangeView(CreateOrderView):
             context['FREE_ORDER'] = True
             price = 0
         order = self.recalculate(price, context['billing_info'])
-        order.pricing = None
+        order.pricing = self.pricing
         order.plan = self.plan
         context['billing_info'] = context['billing_info']
         context['object'] = order
         self.validate_plan(order.plan)
         return context
 
+    def get(self, request, *args, **kwargs):
+        self.object = None
+        context = self.get_context_data()
+        userplan = self.request.user.userplan.plan
+ 
+        plan_pricings = userplan.planpricing_set.order_by('-pricing__period').select_related('pricing')
+        selected_pricing = None
+        #FIXME how should we choose a pricing?
+        for plan_pricing in plan_pricings:
+            selected_pricing = plan_pricing
+            break
+
+        if self.plan_pricing.price <= selected_pricing.price:
+            messages.error(request, _("You can't switch from your current plan to this one."))
+            return HttpResponseRedirect(reverse('plans:upgrade'))
+
+        return super().get(request, *args, **kwargs)
 
 class OrderView(LoginRequired, DetailView):
     model = Order

@@ -204,57 +204,33 @@ class UserPlan(models.Model):
         :return:
         """
 
-        status = False  # flag; if extending account was successful?
-        if pricing is None:
-            # Process a plan change request (downgrade or upgrade)
-            # No account activation or extending at this point
+        # Processing standard account extending procedure
+        if self.plan != plan:
             self.plan = plan
-            self.save()
+            
             account_change_plan.send(sender=self, user=self.user)
             mail_context = Context({'user': self.user, 'userplan': self, 'plan': plan})
             send_template_email([self.user.email], 'mail/change_plan_title.txt', 'mail/change_plan_body.txt',
                                 mail_context, get_user_language(self.user))
-            accounts_logger.info(
-                "Account '%s' [id=%d] plan changed to '%s' [id=%d]" % (self.user, self.user.pk, plan, plan.pk))
-            status = True
+                                
+                
+        if self.expire is None:
+            pass
+        elif self.expire > date.today():
+            self.expire += timedelta(days=pricing.period)
         else:
-            # Processing standard account extending procedure
-            if self.plan == plan:
-                status = True
-                if self.expire is None:
-                    pass
-                elif self.expire > date.today():
-                    self.expire += timedelta(days=pricing.period)
-                else:
-                    self.expire = date.today() + timedelta(days=pricing.period)
+            self.expire = date.today() + timedelta(days=pricing.period)
 
-            else:
-                # This should not ever happen (as this case should be managed by plan change request)
-                # but just in case we consider a case when user has a different plan
-                if self.expire is None:
-                    status = True
-                elif self.expire > date.today():
-                    status = False
-                    accounts_logger.warning("Account '%s' [id=%d] plan NOT changed to '%s' [id=%d]" % (
-                        self.user, self.user.pk, plan, plan.pk))
-                else:
-                    status = True
-                    account_change_plan.send(sender=self, user=self.user)
-                    self.plan = plan
-                    self.expire = date.today() + timedelta(days=pricing.period)
+        self.save()
+        accounts_logger.info("Account '%s' [id=%d] has been extended by %d days using plan '%s' [id=%d]" % (
+            self.user, self.user.pk, pricing.period, plan, plan.pk))
+        #mail_context = Context({'user': self.user, 'userplan': self, 'plan': plan, 'pricing': pricing})
+        #send_template_email([self.user.email], 'mail/extend_account_title.txt', 'mail/extend_account_body.txt',
+        #                    mail_context, get_user_language(self.user))
 
-            if status:
-                self.save()
-                accounts_logger.info("Account '%s' [id=%d] has been extended by %d days using plan '%s' [id=%d]" % (
-                    self.user, self.user.pk, pricing.period, plan, plan.pk))
-                mail_context = Context({'user': self.user, 'userplan': self, 'plan': plan, 'pricing': pricing})
-                send_template_email([self.user.email], 'mail/extend_account_title.txt', 'mail/extend_account_body.txt',
-                                    mail_context, get_user_language(self.user))
+        self.clean_activation()
 
-        if status:
-            self.clean_activation()
-
-        return status
+        return True
 
     def expire_account(self):
         """manages account expiration"""
